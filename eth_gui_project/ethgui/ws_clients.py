@@ -107,6 +107,12 @@ class WSSecCandle(QObject):
                         bar["close"]  = price
                         bar["volume"] += size
 
+            # Emit the last candle when the stream ends
+        if self._bar:
+            logger.debug(f"WS1S emit final bar: {self._bar}")
+            self.new_candle.emit(self._bar.copy())
+            self._bar = None
+
 class WSOrderBook(QObject):
     """实时深度 books5"""
     new_book = pyqtSignal(list, list)  # bids, asks
