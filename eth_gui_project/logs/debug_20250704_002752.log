@@ -1,0 +1,14 @@
+[2025-07-04 00:27:52] DEBUG: Logging to console and file: logs\debug_20250704_002752.log
+[2025-07-04 00:27:54] DEBUG: Set ALL_PROXY=http://127.0.0.1:7890
+[2025-07-04 00:27:54] DEBUG: WSSecCandle connecting …
+[2025-07-04 00:27:54] DEBUG: WSLive connecting for 1m …
+[2025-07-04 00:27:54] DEBUG: WSOrderBook connecting …
+[2025-07-04 00:27:55] DEBUG: WSLive subscribed candle1m
+[2025-07-04 00:27:57] DEBUG: WSOrderBook subscribed books5
+[2025-07-04 00:27:57] DEBUG: WSSecCandle subscribed trades
+[2025-07-04 00:28:06] DEBUG: start_fetch clicked
+[2025-07-04 00:28:06] DEBUG: Loading cache cache\ETH-USDT_1m.parquet
+[2025-07-04 00:28:06] DEBUG: Cache newest=1751558580000
+[2025-07-04 00:28:17] DEBUG: start_fetch clicked
+[2025-07-04 00:28:17] DEBUG: Loading cache cache\ETH-USDT_1D.parquet
+[2025-07-04 00:28:17] DEBUG: Cache newest=1751558400000

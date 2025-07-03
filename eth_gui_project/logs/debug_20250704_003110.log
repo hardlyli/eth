@@ -1,0 +1,50 @@
+[2025-07-04 00:31:10] DEBUG: Logging to console and file: logs\debug_20250704_003110.log
+[2025-07-04 00:31:11] DEBUG: Set ALL_PROXY=http://127.0.0.1:7890
+[2025-07-04 00:31:11] DEBUG: WSSecCandle connecting …
+[2025-07-04 00:31:11] DEBUG: WSLive connecting for 1m …
+[2025-07-04 00:31:11] DEBUG: WSOrderBook connecting …
+[2025-07-04 00:31:13] DEBUG: WSLive subscribed candle1m
+[2025-07-04 00:31:13] DEBUG: WSOrderBook subscribed books5
+[2025-07-04 00:31:14] DEBUG: WSSecCandle subscribed trades
+[2025-07-04 00:31:16] DEBUG: start_fetch clicked
+[2025-07-04 00:31:16] DEBUG: Loading cache cache\ETH-USDT_1m.parquet
+[2025-07-04 00:31:16] DEBUG: Cache newest=1751558580000
+[2025-07-04 00:31:19] DEBUG: start_fetch clicked
+[2025-07-04 00:31:19] DEBUG: Loading cache cache\ETH-USDT_1m.parquet
+[2025-07-04 00:31:19] DEBUG: Cache newest=1751558580000
+[2025-07-04 00:31:31] DEBUG: start_fetch clicked
+[2025-07-04 00:31:31] DEBUG: Loading cache cache\ETH-USDT_1D.parquet
+[2025-07-04 00:31:31] DEBUG: Cache newest=1751558400000
+[2025-07-04 00:31:32] DEBUG: start_fetch clicked
+[2025-07-04 00:31:32] DEBUG: Loading cache cache\ETH-USDT_1D.parquet
+[2025-07-04 00:31:32] DEBUG: Cache newest=1751558400000
+[2025-07-04 00:31:32] DEBUG: start_fetch clicked
+[2025-07-04 00:31:32] DEBUG: Loading cache cache\ETH-USDT_1D.parquet
+[2025-07-04 00:31:32] DEBUG: Cache newest=1751558400000
+[2025-07-04 00:31:33] DEBUG: start_fetch clicked
+[2025-07-04 00:31:33] DEBUG: Loading cache cache\ETH-USDT_1D.parquet
+[2025-07-04 00:31:33] DEBUG: Cache newest=1751558400000
+[2025-07-04 00:31:33] DEBUG: start_fetch clicked
+[2025-07-04 00:31:33] DEBUG: Loading cache cache\ETH-USDT_1D.parquet
+[2025-07-04 00:31:33] DEBUG: Cache newest=1751558400000
+[2025-07-04 00:31:34] DEBUG: start_fetch clicked
+[2025-07-04 00:31:34] DEBUG: Loading cache cache\ETH-USDT_1D.parquet
+[2025-07-04 00:31:34] DEBUG: Cache newest=1751558400000
+[2025-07-04 00:31:40] DEBUG: start_fetch clicked
+[2025-07-04 00:31:40] DEBUG: Loading cache cache\ETH-USDT_1D.parquet
+[2025-07-04 00:31:40] DEBUG: Cache newest=1751558400000
+[2025-07-04 00:31:41] DEBUG: start_fetch clicked
+[2025-07-04 00:31:41] DEBUG: Loading cache cache\ETH-USDT_1D.parquet
+[2025-07-04 00:31:41] DEBUG: Cache newest=1751558400000
+[2025-07-04 00:31:41] DEBUG: start_fetch clicked
+[2025-07-04 00:31:41] DEBUG: Loading cache cache\ETH-USDT_1D.parquet
+[2025-07-04 00:31:41] DEBUG: Cache newest=1751558400000
+[2025-07-04 00:31:43] DEBUG: start_fetch clicked
+[2025-07-04 00:31:43] DEBUG: Loading cache cache\ETH-USDT_1D.parquet
+[2025-07-04 00:31:43] DEBUG: Cache newest=1751558400000
+[2025-07-04 00:31:43] DEBUG: start_fetch clicked
+[2025-07-04 00:31:43] DEBUG: Loading cache cache\ETH-USDT_1D.parquet
+[2025-07-04 00:31:43] DEBUG: Cache newest=1751558400000
+[2025-07-04 00:31:44] DEBUG: start_fetch clicked
+[2025-07-04 00:31:44] DEBUG: Loading cache cache\ETH-USDT_1D.parquet
+[2025-07-04 00:31:44] DEBUG: Cache newest=1751558400000
