@@ -1,0 +1,10 @@
+PyQt6
+matplotlib
+pandas
+requests
+numpy
+scikit-learn
+certifi
+websockets
+pyarrow
+mplfinance
