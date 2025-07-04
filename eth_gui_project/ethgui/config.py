@@ -18,5 +18,6 @@ DEFAULT_MIN_HITS = 2
 
 # ---- OKX 接口地址 ----
 OKX_REST_URL = "https://www.okx.com/api/v5/market/candles"
-WS_URL       = "wss://ws.okx.com:8443/ws/v5/public"
+# WebSocket 市场行情地址根据官方文档应使用 /ws/v5/market
+WS_URL       = "wss://ws.okx.com:8443/ws/v5/market"
 WS_PROXY = "http://127.0.0.1:7890"
