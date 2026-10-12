@@ -1,152 +1,150 @@
-"""Resilient OKX WebSocket consumers."""
-import asyncio
-import json
+# ethgui/ws_clients.py
+
 import os
-import random
+import json
+import asyncio
 import threading
-from datetime import datetime
 import websockets
+from datetime import datetime
 from PyQt6.QtCore import QObject, pyqtSignal
 from .config import WS_URL, WS_PROXY
 from .logger import logger
 
+# 如需代理，注入 ALL_PROXY
 if WS_PROXY:
     os.environ.setdefault("ALL_PROXY", WS_PROXY)
+    logger.debug(f"Set ALL_PROXY={WS_PROXY}")
 
+class WSLive(QObject):
+    """1m 折线"""
+    new_candle = pyqtSignal(dict)  # dict(ts, close)
 
-class _WSBase(QObject):
     def __init__(self, inst: str):
         super().__init__()
         self.inst = inst
-        self._stop_event = threading.Event()
-        self._thread = None
 
     def start(self):
-        if self._thread and self._thread.is_alive():
-            return
-        self._stop_event.clear()
-        self._thread = threading.Thread(target=self._run, daemon=True)
-        self._thread.start()
-
-    def stop(self):
-        self._stop_event.set()
+        threading.Thread(target=self._run, daemon=True).start()
 
     def _run(self):
-        try:
-            asyncio.run(self._reconnect_loop())
-        except Exception:
-            logger.exception("%s worker stopped unexpectedly", type(self).__name__)
+        asyncio.run(self._ws())
 
-    async def _reconnect_loop(self):
-        delay = 1.0
-        while not self._stop_event.is_set():
-            try:
-                await self._ws_session()
-                if not self._stop_event.is_set():
-                    raise ConnectionError("WebSocket closed by remote peer")
-                delay = 1.0
-            except asyncio.CancelledError:
-                raise
-            except Exception as exc:
-                if self._stop_event.is_set():
-                    break
-                logger.warning("%s disconnected: %s; retry in %.1fs", type(self).__name__, exc, delay)
-                await asyncio.sleep(delay + random.uniform(0, delay * 0.2))
-                delay = min(delay * 2, 30.0)
-
-    async def _ws_session(self):
-        raise NotImplementedError
-
-    async def _connect_and_consume(self, channel, on_message):
-        async with websockets.connect(
-            WS_URL, open_timeout=10, close_timeout=5,
-            ping_interval=20, ping_timeout=20, max_size=2**20
-        ) as ws:
+    async def _ws(self):
+        logger.debug("WSLive connecting…")
+        async with websockets.connect(WS_URL) as ws:
             await ws.send(json.dumps({
-                "op": "subscribe",
-                "args": [{"channel": channel, "instId": self.inst}]
+                "op":"subscribe",
+                "args":[{"channel":"candle1m","instId":self.inst}]
             }))
-            logger.info("%s subscribed to %s (%s)", type(self).__name__, channel, self.inst)
+            logger.debug("WSLive subscribed candle1m")
             async for raw in ws:
-                if self._stop_event.is_set():
-                    break
-                try:
-                    message = json.loads(raw)
-                except (json.JSONDecodeError, TypeError):
-                    logger.warning("%s received invalid JSON", type(self).__name__)
+                logger.debug(f"WSLive RAW: {raw}")
+                d = json.loads(raw)
+                if d.get("event"):
                     continue
-                if message.get("event"):
-                    if message.get("event") == "error":
-                        raise RuntimeError(f"WebSocket subscription error: {message}")
+                arg = d.get("arg", {})
+                if arg.get("channel") != "candle1m":
                     continue
-                if message.get("arg", {}).get("channel") != channel:
-                    continue
-                try:
-                    on_message(message)
-                except (KeyError, IndexError, TypeError, ValueError) as exc:
-                    logger.warning("%s ignored malformed %s message: %s", type(self).__name__, channel, exc)
+                k = d["data"][0]  # [ts,o,h,l,c,vol,…]
+                self.new_candle.emit({
+                    "ts":    int(k[0]),
+                    "close": float(k[4])
+                })
 
-
-class WSLive(_WSBase):
-    """One-minute candle stream."""
-    new_candle = pyqtSignal(dict)
-
-    async def _ws_session(self):
-        await self._connect_and_consume("candle1m", self._on_message)
-
-    def _on_message(self, message):
-        for candle in message.get("data", []):
-            self.new_candle.emit({"ts": int(candle[0]), "close": float(candle[4])})
-
-
-class WSSecCandle(_WSBase):
-    """Aggregate trades into one-second OHLCV bars."""
-    new_candle = pyqtSignal(dict)
+class WSSecCandle(QObject):
+    """1s K 线聚合（trades）"""
+    new_candle = pyqtSignal(dict)  # dict(ts, open, high, low, close, volume)
 
     def __init__(self, inst: str):
-        super().__init__(inst)
+        super().__init__()
+        self.inst = inst
         self._bar = None
-        self._last_trade_id = None
 
-    async def _ws_session(self):
-        await self._connect_and_consume("trades", self._on_message)
+    def start(self):
+        threading.Thread(target=self._run, daemon=True).start()
 
-    def _on_message(self, message):
-        trades = sorted(message.get("data", []), key=lambda t: (int(t["ts"]), str(t.get("tradeId", ""))))
-        for trade in trades:
-            trade_id = trade.get("tradeId")
-            if trade_id is not None and trade_id == self._last_trade_id:
-                continue
-            self._last_trade_id = trade_id
-            dt = datetime.fromisoformat(trade["ts"].replace("Z", "+00:00"))
-            ts_ms = int(dt.timestamp() * 1000)
-            bucket = ts_ms // 1000 * 1000
-            price, size = float(trade["px"]), float(trade["sz"])
-            if self._bar is None:
-                self._bar = self._new_bar(bucket, price, size)
-            elif bucket == self._bar["ts"]:
-                self._bar["high"] = max(self._bar["high"], price)
-                self._bar["low"] = min(self._bar["low"], price)
-                self._bar["close"] = price
-                self._bar["volume"] += size
-            elif bucket > self._bar["ts"]:
-                self.new_candle.emit(self._bar.copy())
-                self._bar = self._new_bar(bucket, price, size)
-            else:
-                logger.debug("Ignoring out-of-order trade timestamp=%s current=%s", bucket, self._bar["ts"])
+    def _run(self):
+        asyncio.run(self._ws())
 
-    @staticmethod
-    def _new_bar(bucket, price, size):
-        return {"ts": bucket, "open": price, "high": price, "low": price, "close": price, "volume": size}
+    async def _ws(self):
+        logger.debug("WSSecCandle connecting…")
+        async with websockets.connect(WS_URL) as ws:
+            await ws.send(json.dumps({
+                "op":"subscribe",
+                "args":[{"channel":"trades","instId":self.inst}]
+            }))
+            logger.debug("WSSecCandle subscribed trades")
+            async for raw in ws:
+                logger.debug(f"WS1S RAW: {raw}")
+                d = json.loads(raw)
+                if d.get("event"):
+                    continue
+                arg = d.get("arg", {})
+                if arg.get("channel") != "trades":
+                    continue
+                for t in d.get("data", []):
+                    dt = datetime.fromisoformat(t["ts"].replace("Z","+00:00"))
+                    ts_ms = int(dt.timestamp()*1000)
+                    bucket = (ts_ms//1000)*1000
+                    price = float(t["px"])
+                    size  = float(t["sz"])
+                    bar = self._bar
+                    if bar is None or bucket != bar["ts"]:
+                        if bar:
+                            logger.debug(f"WS1S emit bar: {bar}")
+                            self.new_candle.emit(bar.copy())
+                        self._bar = {
+                            "ts":     bucket,
+                            "open":   price,
+                            "high":   price,
+                            "low":    price,
+                            "close":  price,
+                            "volume": size
+                        }
+                    else:
+                        bar["high"]   = max(bar["high"], price)
+                        bar["low"]    = min(bar["low"], price)
+                        bar["close"]  = price
+                        bar["volume"] += size
 
+            # Emit the last candle when the stream ends
+        if self._bar:
+            logger.debug(f"WS1S emit final bar: {self._bar}")
+            self.new_candle.emit(self._bar.copy())
+            self._bar = None
 
-class WSOrderBook(_WSBase):
-    """Top-five order book stream."""
-    new_book = pyqtSignal(list, list)
+class WSOrderBook(QObject):
+    """实时深度 books5"""
+    new_book = pyqtSignal(list, list)  # bids, asks
 
-    async def _ws_session(self):
-        await self._connect_and_consume("books5", self._on_message)
+    def __init__(self, inst: str):
+        super().__init__()
+        self.inst = inst
 
-    def _on_message(self, message):
-        book = message["data"][0]
-        self.new_book.emit(book.get("bids", []), book.get("asks", []))
+    def start(self):
+        threading.Thread(target=self._run, daemon=True).start()
+
+    def _run(self):
+        asyncio.run(self._ws())
+
+    async def _ws(self):
+        logger.debug("WSOrderBook connecting…")
+        async with websockets.connect(WS_URL) as ws:
+            await ws.send(json.dumps({
+                "op":"subscribe",
+                "args":[{"channel":"books5","instId":self.inst}]
+            }))
+            logger.debug("WSOrderBook subscribed books5")
+            async for raw in ws:
+                logger.debug(f"WSOB RAW: {raw}")
+                d = json.loads(raw)
+                if d.get("event"):
+                    continue
+                arg = d.get("arg", {})
+                if arg.get("channel") != "books5":
+                    continue
+                ob = d["data"][0]
+                bids = ob.get("bids", [])
+                asks = ob.get("asks", [])
+                logger.debug(f"WSOB data bids={len(bids)} asks={len(asks)}")
+                self.new_book.emit(bids, asks)
